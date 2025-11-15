@@ -1,6 +1,9 @@
-using Microsoft.AspNetCore.Mvc;
-using FutureOfWorkAPI.Services;
 using FutureOfWorkAPI.Models;
+using FutureOfWorkAPI.Models.Dtos;
+using FutureOfWorkAPI.Models.Shared;
+using FutureOfWorkAPI.Services;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 namespace FutureOfWorkAPI.Controllers;
 
@@ -15,51 +18,107 @@ public class CursosController : ControllerBase
         _service = service;
     }
 
+    // GET público
     [HttpGet]
-    [ProducesResponseType(typeof(IEnumerable<Curso>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetAll()
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(ApiResponse<IEnumerable<CursoDto>>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<ApiResponse<IEnumerable<CursoDto>>>> GetAll()
     {
         var list = await _service.GetAllAsync();
-        return Ok(list);
+        var dtos = list.Select(c => new CursoDto
+        {
+            Id = c.Id,
+            Titulo = c.Titulo,
+            Categoria = c.Categoria,
+            CargaHoraria = c.CargaHoraria
+        });
+
+        return Ok(ApiResponse<IEnumerable<CursoDto>>.Ok(dtos));
     }
 
     [HttpGet("{id:int}")]
-    [ProducesResponseType(typeof(Curso), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetById(int id)
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(ApiResponse<CursoDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<CursoDto>), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ApiResponse<CursoDto>>> GetById(int id)
     {
         var item = await _service.GetByIdAsync(id);
-        if (item is null) return NotFound();
-        return Ok(item);
+        if (item is null)
+            return NotFound(ApiResponse<CursoDto>.Falha("Curso não encontrado."));
+
+        var dto = new CursoDto
+        {
+            Id = item.Id,
+            Titulo = item.Titulo,
+            Categoria = item.Categoria,
+            CargaHoraria = item.CargaHoraria
+        };
+
+        return Ok(ApiResponse<CursoDto>.Ok(dto));
     }
 
+    // CRUD protegido – precisa de token com role Admin
+
     [HttpPost]
-    [ProducesResponseType(typeof(Curso), StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> Create([FromBody] Curso c)
+    [Authorize(Roles = "Admin")]
+    [ProducesResponseType(typeof(ApiResponse<CursoDto>), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ApiResponse<CursoDto>), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<ApiResponse<CursoDto>>> Create([FromBody] CursoCreateDto dto)
     {
-        if (!ModelState.IsValid) return BadRequest(ModelState);
-        var created = await _service.CreateAsync(c);
-        return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+        if (!ModelState.IsValid)
+            return BadRequest(ApiResponse<CursoDto>.Falha("Dados inválidos."));
+
+        var entity = new Curso
+        {
+            Titulo = dto.Titulo,
+            Categoria = dto.Categoria,
+            CargaHoraria = dto.CargaHoraria
+        };
+
+        var created = await _service.CreateAsync(entity);
+
+        var result = new CursoDto
+        {
+            Id = created.Id,
+            Titulo = created.Titulo,
+            Categoria = created.Categoria,
+            CargaHoraria = created.CargaHoraria
+        };
+
+        return CreatedAtAction(nameof(GetById), new { id = result.Id }, ApiResponse<CursoDto>.Ok(result));
     }
 
     [HttpPut("{id:int}")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> Update(int id, [FromBody] Curso c)
+    [Authorize(Roles = "Admin")]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ApiResponse<object>>> Update(int id, [FromBody] CursoCreateDto dto)
     {
-        var ok = await _service.UpdateAsync(id, c);
-        if (!ok) return NotFound();
-        return NoContent();
+        var entity = new Curso
+        {
+            Id = id,
+            Titulo = dto.Titulo,
+            Categoria = dto.Categoria,
+            CargaHoraria = dto.CargaHoraria
+        };
+
+        var ok = await _service.UpdateAsync(id, entity);
+        if (!ok)
+            return NotFound(ApiResponse<object>.Falha("Curso não encontrado."));
+
+        return StatusCode(StatusCodes.Status204NoContent);
     }
 
     [HttpDelete("{id:int}")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> Delete(int id)
+    [Authorize(Roles = "Admin")]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ApiResponse<object>>> Delete(int id)
     {
         var ok = await _service.DeleteAsync(id);
-        if (!ok) return NotFound();
-        return NoContent();
+        if (!ok)
+            return NotFound(ApiResponse<object>.Falha("Curso não encontrado."));
+
+        return StatusCode(StatusCodes.Status204NoContent);
     }
 }
