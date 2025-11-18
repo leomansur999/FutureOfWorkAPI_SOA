@@ -35,8 +35,8 @@ O sistema demonstra separação de responsabilidades, uso de DTOs, Value Objects
 ## Arquitetura (Mermaid)
 ```mermaid
 flowchart LR
-    Client[Cliente (Swagger/Postman)] -->|HTTP| Ctrl[Controllers]
+    Client["Cliente (Swagger ou Postman)"] -->|HTTP| Ctrl[Controllers]
     Ctrl --> Svc[Services]
-    Svc --> VO[Value Object: AreaInteresseVO]
-    Svc --> Db[(SQLite via EF Core)]
-    Ctrl --> Auth[Middleware JWT]
+    Svc --> VO["Value Object AreaInteresseVO"]
+    Svc --> Db["SQLite via EF Core"]
+    Ctrl --> Auth["Middleware JWT"]
