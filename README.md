@@ -1,44 +1,42 @@
-# FutureOfWorkAPI (C# / .NET 8) – Global Solution 2025-2
+# FutureOfWorkAPI (C# / .NET 8) – SOA & WebServices 2025-2
 
-API RESTful sobre **Requalificação Profissional** para o tema **O Futuro do Trabalho**.
+API RESTful para **Capacitação Profissional** e **Recomendação de Cursos**, alinhada ao tema **O Futuro do Trabalho**.
 
-## ✅ Requisitos Atendidos
-- **Boas práticas REST (30 pts)**: Verbos corretos, status codes (`200/201/204/400/404`).  
-- **Versionamento (10 pts)**: Rotas com prefixo `/api/v1/...`.  
-- **Integração e Persistência (30 pts)**: EF Core + SQLite + Migrations (instruções abaixo).  
-- **Documentação (30 pts)**: Swagger habilitado; diagrama arquitetural (Mermaid); roteiro de vídeo.
+## Integrantes do Grupo
+- Leonardo Mansur – RM551659
+- Gabriel Oliveira – RM98565
+- Gabriel Riqueto – RM98685
 
-## 🏗️ Arquitetura (Mermaid)
+## Objetivo do Projeto
+A FutureOfWorkAPI simula um ecossistema de capacitação profissional utilizando arquitetura orientada a serviços (SOA).  
+A solução permite cadastrar cursos, profissionais, realizar autenticação JWT, controlar permissões por perfil e recomendar cursos de acordo com a área de interesse do usuário.  
+O sistema demonstra separação de responsabilidades, uso de DTOs, Value Objects, Middleware, padrão REST e integração via EF Core.
+
+## Funcionamento
+- Autenticação via JWT (`POST /api/v1/Auth/login`)
+- Cursos e profissionais organizados em serviços independentes
+- Regras de recomendação centralizadas no `RecomendacaoService`
+- Tratamento global de exceções com `GlobalExceptionMiddleware`
+- Respostas padronizadas via `ApiResponse<T>`
+- Arquitetura totalmente stateless (JWT)
+- Banco relacional SQLite controlado por EF Core e Migrations
+
+## Requisitos Atendidos
+- Arquitetura orientada a serviços (SOA): controllers finos, services independentes
+- Value Object aplicado: `AreaInteresseVO` interpreta áreas de interesse
+- Caso de uso implementado em serviço: recomendação de cursos
+- Padrão de resposta (ResponseEntity)
+- Autenticação JWT
+- Autorização com Roles (Admin / User)
+- Sessão stateless (JWT Bearer)
+- Tratamento global de exceções (middleware)
+- Documentação automática via Swagger
+
+## Arquitetura (Mermaid)
 ```mermaid
 flowchart LR
     Client[Cliente (Swagger/Postman)] -->|HTTP| Ctrl[Controllers]
     Ctrl --> Svc[Services]
+    Svc --> VO[Value Object: AreaInteresseVO]
     Svc --> Db[(SQLite via EF Core)]
-```
-
-## 🚀 Como Rodar
-### Requisitos
-- .NET SDK 8
-- (Opcional) dotnet-ef:
-  ```bash
-  dotnet tool install --global dotnet-ef
-  ```
-
-### Passos
-```bash
-dotnet restore
-dotnet build
-dotnet ef migrations add InitialCreate
-dotnet ef database update
-dotnet run
-```
-Swagger: `https://localhost:7286/swagger` (ou `http://localhost:5286/swagger`)
-
-## 🔗 Endpoints
-- `/api/v1/profissionais` (GET, POST)
-- `/api/v1/profissionais/{id}` (GET, PUT, DELETE)
-- `/api/v1/cursos` (GET, POST)
-- `/api/v1/cursos/{id}` (GET, PUT, DELETE)
-
-## 📦 Publicação (Opcional)
-Deploy em Azure/Render/Railway. Alterar connection string se usar SQL Server.
+    Ctrl --> Auth[Middleware JWT]
